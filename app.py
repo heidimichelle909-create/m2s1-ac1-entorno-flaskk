@@ -21,7 +21,6 @@ class Usuario(db.Model):
 
     def __repr__(self):
         return f"Usuario('{self.nombre}', '{self.correo}')"
-
  
 with app.app_context():
     db.create_all()
@@ -39,10 +38,21 @@ def about():
 def contacto():
     form = ContactoForm()
     if form.validate_on_submit():
-        flash(f"Gracias, {form.nombre.data}! Recibimos tus datos", "success")
-        return redirect(url_for("contacto"))
+        existence = Usuario.query.filter_by(correo=form.correo.data).first()
+        if existence:
+            flash("El correo ya esta en la base de datos", "danger")
+        else:
+            usuario = Usuario(nombre=form.nombre.data, correo=form.correo.data)
+            db.session.add(usuario)
+            db.session.commit()
+            flash(f'Registro guardado con exito', {usuario.nombre}, category="success")
+            return redirect(url_for("contacto"))
     return render_template("contacto.html", form=form)
 
+@app.route("/usuarios")
+def usuarios():
+    lista=Usuario.query.order_by(Usuario.id).all()
+    return render_template("usuarios.html", usuarios=lista)
 
 if __name__ == "__main__":
     app.run(debug=True)
