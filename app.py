@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, url_for
 from flask_bootstrap import Bootstrap5
+from flask_mail import Mail, Message
 from flask_sqlalchemy import SQLAlchemy
 
 from forms import ContactoForm
@@ -11,8 +12,14 @@ load_dotenv()
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///site.db"
+app.config["MAIL_SERVER"] = "smtp.example.com"
+app.config["MAIL_PORT"] = 587
+app.config["MAIL_DEFAULT_SENDER"] = "proyecto@ejemplo.com"
+app.config["MAIL_SUPPRESS_SEND"] = True
+
 bootstrap = Bootstrap5(app)
 db = SQLAlchemy(app)
+mail = Mail(app)
 
 class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -45,7 +52,14 @@ def contacto():
             usuario = Usuario(nombre=form.nombre.data, correo=form.correo.data)
             db.session.add(usuario)
             db.session.commit()
-            flash(f'Registro guardado con exito', {usuario.nombre}, category="success")
+            mensaje = Message(
+                subject="Confirmacion de registro",
+                recipients=[usuario.correo], 
+                body=f"Hola {usuario.nombre}, Tu registro se guardo correctamente."
+                )
+            mail.send(mensaje)
+            print(f"Correo de prueba para:", usuario.correo)
+            flash(f'Registro guardado con exito, {usuario.nombre}', category="success")
             return redirect(url_for("contacto"))
     return render_template("contacto.html", form=form)
 
